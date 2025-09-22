@@ -9,7 +9,8 @@ from streamlit.components.v1 import html
 
 st.set_page_config(layout="wide", page_title="Predicción de Vuelos", page_icon="✈️")
 
-# URLs de descarga de Google Drive (asegúrate de que los enlaces sean públicos y directos)
+# URLs de descarga directa de Google Drive
+# Los enlaces se han modificado para el formato de descarga "uc?id="
 DRIVE_URLS = {
     "route_encodings.pkl": "https://drive.google.com/uc?id=1-SP0DoXWZ8uBj3G9dTdAvTR64g2rJCZ9",
     "flight_demand_model.pkl": "https://drive.google.com/uc?id=1NHSsNMcQmiOJrJ9SRpJdVLcEF8zFZla5",
@@ -18,7 +19,7 @@ DRIVE_URLS = {
     "historical_data.csv": "https://drive.google.com/uc?id=12SfLLk-gOdZ4PhggEkMN1o8xjei2kiEz",
 }
 
-# Caching pargia descargar archivos y evitar descargas repetidas
+# Caching para descargar archivos y evitar descargas repetidas
 @st.cache_data
 def load_data(url):
     try:
