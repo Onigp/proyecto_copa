@@ -11,8 +11,8 @@ st.set_page_config(layout="wide", page_title="Predicción de Vuelos", page_icon=
 
 # URLs de descarga de Google Drive (asegúrate de que los enlaces sean públicos y directos)
 DRIVE_URLS = {
-    "route_encodings.pkl": "https://drive.google.com/uc?id=1-SP0DoXWZ8uBj3G9dTdAvTR64g2rJCZ9",
-    "flight_demand_model.pkl": "https://drive.google.com/uc?id=1NHSsNMcQmiOJrJ9SRpJdVLcEF8zFZla5",
+    "route_encodings.pkl": "https://drive.google.com/uc?id=1uJ74bpggf_dy9HimnLnky1ym3aTGaIZU",
+    "flight_demand_model.pkl": "https://drive.google.com/uc?id=1Nz4G1zqscbcPTaqtagK21CVCz1JWTR4Z",
     "load_factor_model.pkl": "https://drive.google.com/uc?id=1rrfe2DVK9yWH2ULaXxEBE4XDbl_i7yVa",
     "passengers_model.pkl": "https://drive.google.com/uc?id=1Zby-f9i8WynyYD-yf1qB-nfu1TXNnX9W",
     "historical_data.csv": "https://drive.google.com/uc?id=12SfLLk-gOdZ4PhggEkMN1o8xjei2kiEz",
@@ -42,14 +42,16 @@ def load_model(url):
         st.error(f"Error al descargar el modelo: {e}")
         return None
 
+# Cargar los modelos y el diccionario de rutas
+route_encodings = load_model(DRIVE_URLS["route_encodings.pkl"])
+demand_model = load_model(DRIVE_URLS["flight_demand_model.pkl"])
+passengers_model = load_model(DRIVE_URLS["passengers_model.pkl"])
+load_factor_model = load_model(DRIVE_URLS["load_factor_model.pkl"])
+
 # Cargar el dataframe de forma global para usar en el análisis histórico
 df_historical = load_data(DRIVE_URLS["historical_data.csv"])
 
-# --- IMPORTANTE: CREAR LA COLUMNA 'route' SIN ESPACIOS ---
-if df_historical is not None:
-    df_historical['route'] = df_historical['airport_1'].astype(str) + '-' + df_historical['airport_2'].astype(str)
-
-
+# --- Estilos de la aplicación ---
 st.markdown("""
     <style>
     .stApp {
@@ -77,12 +79,11 @@ st.markdown('¡Bienvenido! Ingresa los detalles de un vuelo para predecir su dem
 st.sidebar.header('Ingresar Parámetros del Vuelo')
 
 def user_input_features():
-    # Cargar los datos y modelos
-    route_encodings = load_model(DRIVE_URLS["route_encodings.pkl"])
-    if route_encodings is None:
-        return None, None, None, None, None, None, None
-
     # Usa las claves del diccionario (los nombres de las rutas) para el selectbox
+    if route_encodings is None:
+        st.sidebar.error("No se pudo cargar el diccionario de rutas.")
+        return None, None, None, None, None, None, None
+    
     sorted_route_names = sorted(route_encodings.keys())
     
     selected_route_name = st.sidebar.selectbox('Selecciona la Ruta de Vuelo:', options=sorted_route_names)
@@ -90,15 +91,34 @@ def user_input_features():
     # Obtener el route_encoded
     route_encoded_value = route_encodings.get(selected_route_name, -1)
     
-    miles = st.sidebar.number_input('Número de Millas:', min_value=100, max_value=5000, value=1000)
-    year = st.sidebar.slider('Año:', min_value=1993, max_value=2025, value=2025)
-    quarter = st.sidebar.slider('Trimestre:', min_value=1, max_value=4, value=1)
-    fare = st.sidebar.number_input('Tarifa del Vuelo:', min_value=50.0, max_value=2000.0, value=250.00, step=0.01)
+    # Obtener el nombre completo de la ruta de los datos históricos
+    route_full_name = ""
+    if df_historical is not None:
+        try:
+            full_names_df = df_historical[['airport_1', 'airport_2', 'city1', 'city2']].drop_duplicates()
+            full_names_df['route'] = full_names_df['airport_1'].astype(str) + '-' + full_names_df['airport_2'].astype(str)
+            full_names_dict = full_names_df.set_index('route').to_dict('index')
+            if selected_route_name in full_names_dict:
+                route_full_name = f"{full_names_dict[selected_route_name]['city1']} - {full_names_dict[selected_route_name]['city2']}"
+        except KeyError:
+            st.warning("No se pudo generar el nombre completo de la ruta. Por favor, verifica las columnas 'city1' y 'city2'.")
+
+    if route_full_name:
+        st.sidebar.markdown(f"**{route_full_name}**")
+    
+    col1, col2 = st.sidebar.columns(2)
+    miles = col1.number_input('Número de Millas:', min_value=100, max_value=5000, value=1000)
+    fare = col2.number_input('Tarifa del Vuelo:', min_value=50.0, max_value=2000.0, value=250.00, step=0.01)
+
+    col3, col4 = st.sidebar.columns(2)
+    year = col3.number_input('Año:', min_value=1993, max_value=2025, value=2025)
+    quarter = col4.number_input('Trimestre:', min_value=1, max_value=4, value=1)
+    
     capacity = st.sidebar.number_input('Capacidad de Asientos:', min_value=50, max_value=500, value=180, step=10)
     
     data = {'route_encoded': route_encoded_value,
-            'miles': miles,
-            'year': year,
+            'nsmiles': miles,
+            'Year': year,
             'quarter': quarter,
             'fare': fare,
             'capacity': capacity}
@@ -109,10 +129,11 @@ def user_input_features():
 
 features, selected_route_name, miles, year, quarter, fare, capacity = user_input_features()
 
-# --- Sección de Análisis Histórico (AHORA SIEMPRE VISIBLE) ---
+# --- Sección de Análisis Histórico ---
 st.header('Análisis Histórico de la Ruta')
 if df_historical is not None and selected_route_name is not None:
     # Filtrar datos históricos
+    df_historical['route'] = df_historical['airport_1'].astype(str) + '-' + df_historical['airport_2'].astype(str)
     historical_route_data = df_historical[df_historical['route'] == selected_route_name]
     
     if not historical_route_data.empty:
@@ -123,7 +144,6 @@ if df_historical is not None and selected_route_name is not None:
         
         # Gráfico de Pasajeros por Año
         st.subheader('Pasajeros por Año')
-        
         chart_passengers = alt.Chart(historical_route_data).mark_bar(color='#4c8bf5').encode(
             x=alt.X('Year:O', title='Año'),
             y=alt.Y('passengers', title='Número de Pasajeros')
@@ -132,45 +152,47 @@ if df_historical is not None and selected_route_name is not None:
 
         # Gráfico del Factor de Ocupación por Año
         st.subheader('Factor de Ocupación por Año')
-
-        chart_load_factor = alt.Chart(historical_route_data).mark_line(point=True, color='#4CAF50').encode(
+        chart_load_factor = alt.Chart(historical_route_data).mark_line(point=alt.OverlayMarkDef(filled=False, color='#4CAF50')).encode(
             x=alt.X('Year:O', title='Año'),
             y=alt.Y('lf_ms', title='Factor de Ocupación', axis=alt.Axis(format=".0%"))
         ).interactive()
         st.altair_chart(chart_load_factor, use_container_width=True)
         
     else:
-        # Usar 'Year' en lugar de 'year_pred'
         st.warning(f'No hay datos históricos disponibles para esta ruta desde el año {df_historical["Year"].min()}.')
 else:
     if df_historical is None:
         st.warning('No se pudo cargar el archivo de datos históricos.')
 
-# --- Condicional para mostrar la predicción (SÓLO CUANDO SE HACE CLIC EN EL BOTÓN) ---
+
+# --- Condicional para mostrar la predicción ---
 if features is not None and st.sidebar.button('Hacer Predicción'):
     
     st.header('Resultados de la Predicción')
     
-    # Cargar modelos
-    flight_demand_model = load_model(DRIVE_URLS["flight_demand_model.pkl"])
-    load_factor_model = load_model(DRIVE_URLS["load_factor_model.pkl"])
-    passengers_model = load_model(DRIVE_URLS["passengers_model.pkl"])
-
-    if flight_demand_model and load_factor_model and passengers_model:
-        prediction_demand = flight_demand_model.predict(features)[0]
-        prediction_passengers = passengers_model.predict(features)[0]
-        prediction_load_factor = load_factor_model.predict(features)[0]
+    if demand_model and passengers_model and load_factor_model:
+        # Hacer predicciones
+        predicted_demand_raw = demand_model.predict(features)[0]
+        # Aquí asumo que tu modelo de demanda predice 0 o 1
+        predicted_demand = "Alta" if predicted_demand_raw > 0.5 else "Baja"
+        
+        predicted_passengers = passengers_model.predict(features)[0]
+        predicted_load_factor = load_factor_model.predict(features)[0]
+        
+        # Ajustar las predicciones para que sean más realistas
+        predicted_passengers = int(max(0, predicted_passengers))
+        predicted_load_factor = min(1.0, max(0.0, predicted_load_factor)) * 100
         
         # Mostrar resultados en columnas
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.metric("Demanda de Vuelo Estimada", f"{prediction_demand:,.0f} personas", "Demanda")
+            st.metric(label="Demanda Predicha", value=predicted_demand)
         with col2:
-            st.metric("Pasajeros Estimados", f"{prediction_passengers:,.0f} pasajeros", "Pasajeros")
+            st.metric("Pasajeros Estimados", f"{predicted_passengers:,.0f} pasajeros")
         with col3:
-            st.metric("Factor de Ocupación Estimado", f"{prediction_load_factor:.2f}%", "Ocupación")
-            
+            st.metric("Factor de Ocupación Estimado", f"{predicted_load_factor:.2f}%")
+        
         st.success('¡La predicción se ha completado con éxito!')
         
     else:
