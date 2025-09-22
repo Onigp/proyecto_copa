@@ -5,6 +5,7 @@ import requests
 import io
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from streamlit.components.v1 import html
 
 # Diccionario con las URLs de los archivos en Google Drive
 # Estos son los enlaces de descarga directa
@@ -31,8 +32,10 @@ def load_data(url):
 def load_model(url):
     """Carga un modelo o diccionario desde una URL de Google Drive y lo cachea."""
     try:
-        response = requests.get(url, stream=True)
+        # Descarga el contenido completo de la URL
+        response = requests.get(url)
         response.raise_for_status()
+        # Carga el modelo desde la memoria
         return joblib.load(io.BytesIO(response.content))
     except requests.exceptions.RequestException as e:
         st.error(f"Error al descargar el modelo desde Google Drive: {e}")
@@ -183,3 +186,9 @@ if (historical_data is not None and
             st.warning("No hay datos históricos disponibles para esta ruta.")
 else:
     st.warning("Cargando archivos... Por favor, espera.")
+
+st.markdown("---")
+st.header("Dashboard de Databricks")
+st.markdown("Ten en cuenta que si el dashboard no es público, se te pedirá que inicies sesión.")
+# El iframe usa la URL que proporcionaste
+html(f'<iframe src="https://dbc-89a702ac-a7de.cloud.databricks.com/embed/dashboardsv3/01f0925efc9f14bd93a0a54faab352f5?o=3046397561422742" width="100%" height="600" frameborder="0"></iframe>', height=600)
