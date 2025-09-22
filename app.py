@@ -164,4 +164,4 @@ st.markdown("---")
 st.header("Dashboard de Databricks")
 st.markdown("Ten en cuenta que si el dashboard no es público, se te pedirá que inicies sesión.")
 # El iframe usa la URL que proporcionaste
-html(f'<iframe src="https://dbc-89a702ac-a7de.cloud.databricks.com/embed/dashboardsv3/01f0925efc9f14bd93a0a54faab352f5?o=3046397561422742" width="100%" height="600" frameborder="0"></iframe>', height=600)
+st.components.v1.html(f'<iframe src="https://dbc-89a702ac-a7de.cloud.databricks.com/embed/dashboardsv3/01f0925efc9f14bd93a0a54faab352f5?o=3046397561422742" width="100%" height="600" frameborder="0"></iframe>', height=600)
