@@ -1,14 +1,14 @@
 import pandas as pd
 import pickle
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor  # Cambiado a Regressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import mean_squared_error
 import os
 
 print("Iniciando el entrenamiento del modelo de demanda...")
 
 # Define la ruta al archivo CSV
-file_path = 'US Airline Flight Routes and Fares 1993-2024.csv'
+file_path = 'C:\\Users\\ginot\\Desktop\\Nueva carpeta\\US Airline Flight Routes and Fares 1993-2024.csv'
 
 # Verificar si el archivo existe
 if not os.path.exists(file_path):
@@ -16,31 +16,28 @@ if not os.path.exists(file_path):
 else:
     try:
         # Cargar el dataframe
-        data = pd.read_csv(file_path)
+        data = pd.read_csv(file_path, low_memory=False)
 
         # Preprocesamiento y limpieza de datos
+        # Crear la columna de demanda
+        data['demands'] = data['passengers'] + data['nsmiles'] / 100 # Ejemplo de demanda
+
         # Eliminar las filas con valores faltantes en las columnas clave
-        data.dropna(subset=['nsmiles', 'fare', 'Year', 'quarter', 'airport_1', 'airport_2', 'passengers'], inplace=True)
+        data.dropna(subset=['nsmiles', 'fare', 'Year', 'quarter', 'airport_1', 'airport_2', 'demands'], inplace=True)
         
         # Crear la columna 'route' para la codificación
         data['route'] = data['airport_1'].astype(str) + '-' + data['airport_2'].astype(str)
         
-        # Eliminar rutas que no aparecen al menos 50 veces para simplificar el modelo
-        route_counts = data['route'].value_counts()
-        rare_routes = route_counts[route_counts < 50].index
-        data = data[~data['route'].isin(rare_routes)]
-
         # Codificación de la ruta
         route_encodings = {route: i for i, route in enumerate(data['route'].unique())}
         data['route_encoded'] = data['route'].map(route_encodings)
 
-        # Crear la columna objetivo 'high_demand'
-        # Usamos un umbral para determinar si la demanda es alta o no (100 pasajeros)
-        data['high_demand'] = (data['passengers'] > 100).astype(int)
+        # Eliminar filas con valores NaN después de la codificación
+        data.dropna(subset=['route_encoded'], inplace=True)
 
         # Seleccionar las características y el objetivo
         features = ['nsmiles', 'fare', 'Year', 'quarter', 'route_encoded']
-        target = 'high_demand'
+        target = 'demands'
 
         X = data[features]
         y = data[target]
@@ -49,13 +46,13 @@ else:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         # Entrenar el modelo
-        model = RandomForestClassifier(n_estimators=100, random_state=42)
+        model = RandomForestRegressor(n_estimators=100, random_state=42) # Cambiado a Regressor
         model.fit(X_train, y_train)
 
         # Evaluar el modelo (opcional)
         y_pred = model.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
-        print(f"Precisión del modelo de demanda: {accuracy:.2f}")
+        rmse = mean_squared_error(y_test, y_pred) # 'squared=False' ha sido eliminado
+        print(f"Raíz del Error Cuadrático Medio (RMSE) del modelo de demanda: {rmse:.2f}")
 
         # Guardar el modelo en un archivo .pkl
         with open('flight_demand_model.pkl', 'wb') as file:

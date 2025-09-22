@@ -11,8 +11,8 @@ st.set_page_config(layout="wide", page_title="Predicción de Vuelos", page_icon=
 
 # URLs de descarga de Google Drive (asegúrate de que los enlaces sean públicos y directos)
 DRIVE_URLS = {
-    "route_encodings.pkl": "https://drive.google.com/uc?id=1uJ74bpggf_dy9HimnLnky1ym3aTGaIZU",
-    "flight_demand_model.pkl": "https://drive.google.com/uc?id=1Nz4G1zqscbcPTaqtagK21CVCz1JWTR4Z",
+    "route_encodings.pkl": "https://drive.google.com/file/d/1-SP0DoXWZ8uBj3G9dTdAvTR64g2rJCZ9",
+    "flight_demand_model.pkl": "https://drive.google.com/file/d/1NHSsNMcQmiOJrJ9SRpJdVLcEF8zFZla5",
     "load_factor_model.pkl": "https://drive.google.com/uc?id=1rrfe2DVK9yWH2ULaXxEBE4XDbl_i7yVa",
     "passengers_model.pkl": "https://drive.google.com/uc?id=1Zby-f9i8WynyYD-yf1qB-nfu1TXNnX9W",
     "historical_data.csv": "https://drive.google.com/uc?id=12SfLLk-gOdZ4PhggEkMN1o8xjei2kiEz",
