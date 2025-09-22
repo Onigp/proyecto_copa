@@ -1,0 +1,2 @@
+*.pkl filter=lfs diff=lfs merge=lfs -text
+US[[:space:]]Airline[[:space:]]Flight[[:space:]]Routes[[:space:]]and[[:space:]]Fares[[:space:]]1993-2024.csv filter=lfs diff=lfs merge=lfs -text
