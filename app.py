@@ -116,8 +116,8 @@ if df_historical is not None and selected_route_name is not None:
     historical_route_data = df_historical[df_historical['route'] == selected_route_name]
     
     if not historical_route_data.empty:
-        # Usar 'Year' en lugar de 'year_pred'
-        historical_route_data = historical_route_data.groupby('Year')[['passengers', 'demands', 'load_factor']].sum().reset_index()
+        # Usar 'Year', 'passengers' y 'lf_ms' que son las columnas reales
+        historical_route_data = historical_route_data.groupby('Year')[['passengers', 'lf_ms']].sum().reset_index()
         
         st.subheader(f'Visualización de los datos de la ruta {selected_route_name} a lo largo de los años.')
         
@@ -129,6 +129,15 @@ if df_historical is not None and selected_route_name is not None:
             y=alt.Y('passengers', title='Número de Pasajeros')
         ).interactive()
         st.altair_chart(chart_passengers, use_container_width=True)
+
+        # Gráfico del Factor de Ocupación por Año
+        st.subheader('Factor de Ocupación por Año')
+
+        chart_load_factor = alt.Chart(historical_route_data).mark_line(point=True, color='#4CAF50').encode(
+            x=alt.X('Year:O', title='Año'),
+            y=alt.Y('lf_ms', title='Factor de Ocupación', axis=alt.Axis(format=".0%"))
+        ).interactive()
+        st.altair_chart(chart_load_factor, use_container_width=True)
         
     else:
         # Usar 'Year' en lugar de 'year_pred'
