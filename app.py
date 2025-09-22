@@ -15,10 +15,10 @@ DRIVE_URLS = {
     "flight_demand_model.pkl": "https://drive.google.com/uc?id=1NHSsNMcQmiOJrJ9SRpJdVLcEF8zFZla5",
     "load_factor_model.pkl": "https://drive.google.com/uc?id=1rrfe2DVK9yWH2ULaXxEBE4XDbl_i7yVa",
     "passengers_model.pkl": "https://drive.google.com/uc?id=1Zby-f9i8WynyYD-yf1qB-nfu1TXNnX9W",
-    "historical_data.csv": "https://drive.com/uc?id=12SfLLk-gOdZ4PhggEkMN1o8xjei2kiEz",
+    "historical_data.csv": "https://drive.google.com/uc?id=12SfLLk-gOdZ4PhggEkMN1o8xjei2kiEz",
 }
 
-# Caching para descargar archivos y evitar descargas repetidas
+# Caching pargia descargar archivos y evitar descargas repetidas
 @st.cache_data
 def load_data(url):
     try:
