@@ -116,7 +116,8 @@ if df_historical is not None and selected_route_name is not None:
     historical_route_data = df_historical[df_historical['route'] == selected_route_name]
     
     if not historical_route_data.empty:
-        historical_route_data = historical_route_data.groupby('year_pred')[['passengers', 'demands', 'load_factor']].sum().reset_index()
+        # Usar 'Year' en lugar de 'year_pred'
+        historical_route_data = historical_route_data.groupby('Year')[['passengers', 'demands', 'load_factor']].sum().reset_index()
         
         st.subheader(f'Visualización de los datos de la ruta {selected_route_name} a lo largo de los años.')
         
@@ -124,13 +125,14 @@ if df_historical is not None and selected_route_name is not None:
         st.subheader('Pasajeros por Año')
         
         chart_passengers = alt.Chart(historical_route_data).mark_bar(color='#4c8bf5').encode(
-            x=alt.X('year_pred:O', title='Año'),
+            x=alt.X('Year:O', title='Año'),
             y=alt.Y('passengers', title='Número de Pasajeros')
         ).interactive()
         st.altair_chart(chart_passengers, use_container_width=True)
         
     else:
-        st.warning(f'No hay datos históricos disponibles para esta ruta desde el año {df_historical["year_pred"].min()}.')
+        # Usar 'Year' en lugar de 'year_pred'
+        st.warning(f'No hay datos históricos disponibles para esta ruta desde el año {df_historical["Year"].min()}.')
 else:
     if df_historical is None:
         st.warning('No se pudo cargar el archivo de datos históricos.')
