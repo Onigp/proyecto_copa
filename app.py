@@ -72,17 +72,17 @@ st.sidebar.header('Ingresar Parámetros del Vuelo')
 
 def user_input_features():
     # Cargar los datos y modelos
-    route_encodings_df = load_model(DRIVE_URLS["route_encodings.pkl"])
-    if route_encodings_df is None:
-        return None, None, None, None, None, None, None, None, None, None
+    route_encodings = load_model(DRIVE_URLS["route_encodings.pkl"])
+    if route_encodings is None:
+        return None, None, None, None, None, None, None
 
-    route_encodings_df['route'] = route_encodings_df.apply(lambda row: f"{row['origin_city']} - {row['dest_city']}", axis=1)
+    # Usa las claves del diccionario (los nombres de las rutas) para el selectbox
+    sorted_route_names = sorted(route_encodings.keys())
     
-    route = st.sidebar.selectbox('Selecciona la Ruta de Vuelo:', options=route_encodings_df['route'].sort_values().unique())
+    selected_route_name = st.sidebar.selectbox('Selecciona la Ruta de Vuelo:', options=sorted_route_names)
     
     # Obtener el route_encoded
-    route_data = route_encodings_df[route_encodings_df['route'] == route].iloc[0]
-    route_encoded = route_data['route_encoded']
+    route_encoded_value = route_encodings.get(selected_route_name, -1)
     
     miles = st.sidebar.number_input('Número de Millas:', min_value=100, max_value=5000, value=1000)
     year = st.sidebar.slider('Año:', min_value=1993, max_value=2025, value=2025)
@@ -90,7 +90,7 @@ def user_input_features():
     fare = st.sidebar.number_input('Tarifa del Vuelo:', min_value=50.0, max_value=2000.0, value=250.00, step=0.01)
     capacity = st.sidebar.number_input('Capacidad de Asientos:', min_value=50, max_value=500, value=180, step=10)
     
-    data = {'route_encoded': route_encoded,
+    data = {'route_encoded': route_encoded_value,
             'miles': miles,
             'year': year,
             'quarter': quarter,
@@ -99,9 +99,9 @@ def user_input_features():
     
     features = pd.DataFrame(data, index=[0])
     
-    return features, route, miles, year, quarter, fare, capacity, route_data, route_encodings_df, df_historical
+    return features, selected_route_name, miles, year, quarter, fare, capacity
 
-features, route, miles, year, quarter, fare, capacity, route_data, route_encodings_df, df_historical = user_input_features()
+features, selected_route_name, miles, year, quarter, fare, capacity = user_input_features()
 
 # Condicional para mostrar la interfaz
 if features is not None and st.sidebar.button('Hacer Predicción'):
@@ -109,30 +109,25 @@ if features is not None and st.sidebar.button('Hacer Predicción'):
     # Análisis Histórico
     st.header('Análisis Histórico de la Ruta')
     if df_historical is not None:
-        if route_data is not None:
+        # Filtrar datos históricos
+        historical_route_data = df_historical[df_historical['route'] == selected_route_name]
+        
+        if not historical_route_data.empty:
+            historical_route_data = historical_route_data.groupby('year_pred')[['passengers', 'demands', 'load_factor']].sum().reset_index()
             
-            # Filtrar datos históricos
-            historical_route_data = df_historical[df_historical['route_encoded'] == route_data['route_encoded']]
+            st.subheader(f'Visualización de los datos de la ruta {selected_route_name} a lo largo de los años.')
             
-            if not historical_route_data.empty:
-                historical_route_data = historical_route_data.groupby('year_pred')[['passengers', 'demands', 'load_factor']].sum().reset_index()
-                
-                st.subheader(f'Visualización de los datos de la ruta {route} a lo largo de los años.')
-                st.markdown(f'**{route_data["origin_city"]}, {route_data["origin_state"]}** - **{route_data["dest_city"]}, {route_data["dest_state"]}**')
-                
-                # Gráfico de Pasajeros por Año
-                st.subheader('Pasajeros por Año')
-                
-                chart_passengers = alt.Chart(historical_route_data).mark_bar(color='#4c8bf5').encode(
-                    x=alt.X('year_pred:O', title='Año'),
-                    y=alt.Y('passengers', title='Número de Pasajeros')
-                ).interactive()
-                st.altair_chart(chart_passengers, use_container_width=True)
-                
-            else:
-                st.warning(f'No hay datos históricos disponibles para esta ruta desde el año {df_historical["year_pred"].min()}.')
+            # Gráfico de Pasajeros por Año
+            st.subheader('Pasajeros por Año')
+            
+            chart_passengers = alt.Chart(historical_route_data).mark_bar(color='#4c8bf5').encode(
+                x=alt.X('year_pred:O', title='Año'),
+                y=alt.Y('passengers', title='Número de Pasajeros')
+            ).interactive()
+            st.altair_chart(chart_passengers, use_container_width=True)
+            
         else:
-            st.warning('Ruta no encontrada en los datos históricos.')
+            st.warning(f'No hay datos históricos disponibles para esta ruta desde el año {df_historical["year_pred"].min()}.')
     else:
         st.warning('No se pudo cargar el archivo de datos históricos.')
 
