@@ -5,6 +5,7 @@ import altair as alt
 import requests
 import io
 import os
+from streamlit.components.v1 import html
 
 st.set_page_config(layout="wide", page_title="Predicción de Vuelos", page_icon="✈️")
 
@@ -43,6 +44,11 @@ def load_model(url):
 
 # Cargar el dataframe de forma global para usar en el análisis histórico
 df_historical = load_data(DRIVE_URLS["historical_data.csv"])
+
+# --- IMPORTANTE: CREAR LA COLUMNA 'route' AQUÍ ---
+if df_historical is not None:
+    df_historical['route'] = df_historical['airport_1'].astype(str) + ' - ' + df_historical['airport_2'].astype(str)
+
 
 st.markdown("""
     <style>
@@ -103,35 +109,35 @@ def user_input_features():
 
 features, selected_route_name, miles, year, quarter, fare, capacity = user_input_features()
 
-# Condicional para mostrar la interfaz
-if features is not None and st.sidebar.button('Hacer Predicción'):
+# --- Sección de Análisis Histórico (AHORA SIEMPRE VISIBLE) ---
+st.header('Análisis Histórico de la Ruta')
+if df_historical is not None and selected_route_name is not None:
+    # Filtrar datos históricos
+    historical_route_data = df_historical[df_historical['route'] == selected_route_name]
     
-    # Análisis Histórico
-    st.header('Análisis Histórico de la Ruta')
-    if df_historical is not None:
-        # Filtrar datos históricos
-        historical_route_data = df_historical[df_historical['route'] == selected_route_name]
+    if not historical_route_data.empty:
+        historical_route_data = historical_route_data.groupby('year_pred')[['passengers', 'demands', 'load_factor']].sum().reset_index()
         
-        if not historical_route_data.empty:
-            historical_route_data = historical_route_data.groupby('year_pred')[['passengers', 'demands', 'load_factor']].sum().reset_index()
-            
-            st.subheader(f'Visualización de los datos de la ruta {selected_route_name} a lo largo de los años.')
-            
-            # Gráfico de Pasajeros por Año
-            st.subheader('Pasajeros por Año')
-            
-            chart_passengers = alt.Chart(historical_route_data).mark_bar(color='#4c8bf5').encode(
-                x=alt.X('year_pred:O', title='Año'),
-                y=alt.Y('passengers', title='Número de Pasajeros')
-            ).interactive()
-            st.altair_chart(chart_passengers, use_container_width=True)
-            
-        else:
-            st.warning(f'No hay datos históricos disponibles para esta ruta desde el año {df_historical["year_pred"].min()}.')
+        st.subheader(f'Visualización de los datos de la ruta {selected_route_name} a lo largo de los años.')
+        
+        # Gráfico de Pasajeros por Año
+        st.subheader('Pasajeros por Año')
+        
+        chart_passengers = alt.Chart(historical_route_data).mark_bar(color='#4c8bf5').encode(
+            x=alt.X('year_pred:O', title='Año'),
+            y=alt.Y('passengers', title='Número de Pasajeros')
+        ).interactive()
+        st.altair_chart(chart_passengers, use_container_width=True)
+        
     else:
+        st.warning(f'No hay datos históricos disponibles para esta ruta desde el año {df_historical["year_pred"].min()}.')
+else:
+    if df_historical is None:
         st.warning('No se pudo cargar el archivo de datos históricos.')
 
-    # Predicción
+# --- Condicional para mostrar la predicción (SÓLO CUANDO SE HACE CLIC EN EL BOTÓN) ---
+if features is not None and st.sidebar.button('Hacer Predicción'):
+    
     st.header('Resultados de la Predicción')
     
     # Cargar modelos
