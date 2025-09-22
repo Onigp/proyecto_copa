@@ -45,9 +45,9 @@ def load_model(url):
 # Cargar el dataframe de forma global para usar en el análisis histórico
 df_historical = load_data(DRIVE_URLS["historical_data.csv"])
 
-# --- IMPORTANTE: CREAR LA COLUMNA 'route' AQUÍ ---
+# --- IMPORTANTE: CREAR LA COLUMNA 'route' SIN ESPACIOS ---
 if df_historical is not None:
-    df_historical['route'] = df_historical['airport_1'].astype(str) + ' - ' + df_historical['airport_2'].astype(str)
+    df_historical['route'] = df_historical['airport_1'].astype(str) + '-' + df_historical['airport_2'].astype(str)
 
 
 st.markdown("""
